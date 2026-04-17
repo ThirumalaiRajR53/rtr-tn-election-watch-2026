@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}{{ candidate['name'] }} ({{ candidate['party'] }}) – {{ app_title }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="/constituency/{{ candidate['constituency_id'] }}">{{ candidate['constituency_name'] }}</a></li>
+        <li class="breadcrumb-item active">{{ candidate['name'] }}</li>
+    </ol>
+</nav>
+
+<!-- Candidate Header -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="candidate-avatar">
+                        {{ candidate['name'][0] }}
+                    </div>
+                    <div>
+                        <h1 class="h3 fw-bold mb-1">{{ candidate['name'] }}</h1>
+                        <span class="badge party-badge fs-6">{{ candidate['party'] }}</span>
+                        {% if candidate['party_full'] and candidate['party_full'] != candidate['party'] %}
+                        <span class="text-muted ms-2">{{ candidate['party_full'] }}</span>
+                        {% endif %}
+                        <div class="text-muted mt-1">
+                            <i class="bi bi-geo-alt me-1"></i>{{ candidate['constituency_name'] }} Constituency
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                {% for f in files %}
+                <a href="/pdf/{{ candidate['folder_name'] }}/{{ f['file_name'] }}" target="_blank" class="btn btn-outline-primary mb-1">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>
+                    Affidavit {{ f['affidavit_number'] }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if candidate['ocr_status'] == 'completed' %}
+<!-- Key Metrics -->
+<div class="row g-3 mb-4">
+    {% if candidate['age'] %}
+    <div class="col-6 col-md-3">
+        <div class="metric-card">
+            <div class="metric-icon"><i class="bi bi-person-fill"></i></div>
+            <div class="metric-value">{{ candidate['age'] }}</div>
+            <div class="metric-label">Age</div>
+        </div>
+    </div>
+    {% endif %}
+    {% if candidate['education'] %}
+    <div class="col-6 col-md-3">
+        <div class="metric-card">
+            <div class="metric-icon"><i class="bi bi-mortarboard-fill"></i></div>
+            <div class="metric-value fs-6">{{ candidate['education'] }}</div>
+            <div class="metric-label">Education</div>
+        </div>
+    </div>
+    {% endif %}
+    {% if candidate['total_assets'] is not none %}
+    <div class="col-6 col-md-3">
+        <div class="metric-card">
+            <div class="metric-icon"><i class="bi bi-cash-stack"></i></div>
+            <div class="metric-value">{{ candidate['total_assets']|inr }}</div>
+            <div class="metric-label">Total Assets</div>
+        </div>
+    </div>
+    {% endif %}
+    {% if candidate['criminal_cases_pending'] is not none %}
+    <div class="col-6 col-md-3">
+        <div class="metric-card {% if candidate['criminal_cases_pending'] > 0 %}border-danger{% endif %}">
+            <div class="metric-icon {% if candidate['criminal_cases_pending'] > 0 %}text-danger{% else %}text-success{% endif %}">
+                <i class="bi bi-{% if candidate['criminal_cases_pending'] > 0 %}exclamation-triangle-fill{% else %}shield-check{% endif %}"></i>
+            </div>
+            <div class="metric-value {% if candidate['criminal_cases_pending'] > 0 %}text-danger{% else %}text-success{% endif %}">
+                {{ candidate['criminal_cases_pending'] }}
+            </div>
+            <div class="metric-label">Pending Cases</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-4">
+    <!-- Detailed Info -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white fw-bold"><i class="bi bi-person-lines-fill me-2"></i>Personal Details</div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    {% if candidate['age'] %}
+                    <tr><td class="text-muted" style="width:40%">Age</td><td class="fw-semibold">{{ candidate['age'] }} years</td></tr>
+                    {% endif %}
+                    {% if candidate['gender'] %}
+                    <tr><td class="text-muted">Gender</td><td class="fw-semibold">{{ candidate['gender'] }}</td></tr>
+                    {% endif %}
+                    {% if candidate['education'] %}
+                    <tr><td class="text-muted">Education</td><td class="fw-semibold">{{ candidate['education'] }}</td></tr>
+                    {% endif %}
+                    {% if candidate['profession'] %}
+                    <tr><td class="text-muted">Profession</td><td class="fw-semibold">{{ candidate['profession'] }}</td></tr>
+                    {% endif %}
+                    <tr><td class="text-muted">Party</td><td class="fw-semibold">{{ candidate['party_full'] or candidate['party'] }}</td></tr>
+                    <tr><td class="text-muted">Constituency</td><td class="fw-semibold">{{ candidate['constituency_name'] }}</td></tr>
+                    <tr><td class="text-muted">Affidavits Filed</td><td class="fw-semibold">{{ candidate['affidavit_count'] }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Details -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white fw-bold"><i class="bi bi-wallet2 me-2"></i>Financial Details</div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    {% if candidate['total_movable_assets'] is not none %}
+                    <tr><td class="text-muted" style="width:45%">Movable Assets</td><td class="fw-semibold">{{ candidate['total_movable_assets']|inr }}</td></tr>
+                    {% endif %}
+                    {% if candidate['total_immovable_assets'] is not none %}
+                    <tr><td class="text-muted">Immovable Assets</td><td class="fw-semibold">{{ candidate['total_immovable_assets']|inr }}</td></tr>
+                    {% endif %}
+                    {% if candidate['total_assets'] is not none %}
+                    <tr class="table-primary"><td class="fw-bold">Total Assets</td><td class="fw-bold">{{ candidate['total_assets']|inr }}</td></tr>
+                    {% endif %}
+                    {% if candidate['total_liabilities'] is not none %}
+                    <tr><td class="text-muted">Total Liabilities</td><td class="fw-semibold text-danger">{{ candidate['total_liabilities']|inr }}</td></tr>
+                    {% endif %}
+                </table>
+
+                {% if candidate['total_movable_assets'] is not none and candidate['total_immovable_assets'] is not none %}
+                <div style="max-height:220px" class="d-flex justify-content-center">
+                    <canvas id="assetChart"></canvas>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Criminal Record -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-bold"><i class="bi bi-shield-exclamation me-2"></i>Criminal Record</div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    {% if candidate['criminal_cases_pending'] is not none %}
+                    <tr>
+                        <td class="text-muted" style="width:50%">Pending Cases</td>
+                        <td class="fw-semibold {% if candidate['criminal_cases_pending'] > 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ candidate['criminal_cases_pending'] }}
+                            {% if candidate['criminal_cases_pending'] == 0 %}<i class="bi bi-check-circle ms-1"></i>{% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if candidate['criminal_cases_convicted'] is not none %}
+                    <tr>
+                        <td class="text-muted">Convictions</td>
+                        <td class="fw-semibold {% if candidate['criminal_cases_convicted'] > 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ candidate['criminal_cases_convicted'] }}
+                            {% if candidate['criminal_cases_convicted'] == 0 %}<i class="bi bi-check-circle ms-1"></i>{% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Affidavit Text -->
+    {% if candidate['ocr_text'] %}
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-file-text me-2"></i>Extracted Affidavit Text</span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleText()">Show/Hide</button>
+            </div>
+            <div class="card-body" id="ocrTextBody" style="display:none">
+                <pre class="ocr-text small">{{ candidate['ocr_text'][:5000] }}</pre>
+                {% if candidate['ocr_text']|length > 5000 %}
+                <p class="text-muted small">... truncated. Download the PDF for complete text.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-hourglass-split me-2"></i>
+    <strong>OCR extraction pending.</strong> Detailed data (assets, education, criminal cases) will appear once the extraction pipeline processes this candidate's affidavit. You can still view the original PDF above.
+</div>
+{% endif %}
+
+<!-- Other Candidates in Constituency -->
+<div class="mt-5">
+    <h4 class="fw-bold mb-3"><i class="bi bi-people me-2"></i>Other Candidates in {{ candidate['constituency_name'] }}</h4>
+    <div class="row g-2">
+        {% for p in peers if p['id'] != candidate['id'] %}
+        <div class="col-6 col-md-3">
+            <a href="/candidate/{{ p['id'] }}" class="text-decoration-none">
+                <div class="card hover-lift">
+                    <div class="card-body py-2 px-3 text-center">
+                        <div class="fw-semibold text-dark small">{{ p['name'] }}</div>
+                        <span class="badge party-badge-sm">{{ p['party'] }}</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleText() {
+    const el = document.getElementById('ocrTextBody');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+{% if candidate['total_movable_assets'] is not none and candidate['total_immovable_assets'] is not none %}
+new Chart(document.getElementById('assetChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Movable Assets', 'Immovable Assets'],
+        datasets: [{
+            data: [{{ candidate['total_movable_assets'] }}, {{ candidate['total_immovable_assets'] }}],
+            backgroundColor: ['#0d6efd', '#198754'],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 12 } } }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

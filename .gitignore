@@ -1,0 +1,8 @@
+TamilNadu_candidate_affidavits/
+__pycache__/
+venv/
+.pytest_cache/
+data/
+*.db
+*.log
+.DS_Store

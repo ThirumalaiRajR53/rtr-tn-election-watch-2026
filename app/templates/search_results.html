@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Search: {{ query }} – {{ app_title }}{% endblock %}
+
+{% block content %}
+<h1 class="h3 fw-bold mb-2"><i class="bi bi-search me-2"></i>Search Results</h1>
+{% if query %}
+<p class="text-muted mb-4">Showing results for "<strong>{{ query }}</strong>" — {{ results|length }} found</p>
+{% endif %}
+
+<form action="/search" method="get" class="mb-4">
+    <div class="input-group input-group-lg">
+        <input type="search" name="q" class="form-control" value="{{ query }}" placeholder="Search candidates, parties, constituencies..." autofocus>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i> Search</button>
+    </div>
+    <small class="text-muted mt-1 d-block">
+        Try: candidate name, party code (DMK, AIADMK, TVK), constituency name, or education level
+    </small>
+</form>
+
+{% if results %}
+<div class="row g-3">
+    {% for r in results %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm hover-lift">
+            <div class="card-body">
+                <h5 class="card-title fw-bold mb-1">
+                    <a href="/candidate/{{ r['id'] }}" class="text-decoration-none text-dark">{{ r['name'] }}</a>
+                </h5>
+                <span class="badge party-badge">{{ r['party'] }}</span>
+                <div class="text-muted small mt-2">
+                    <i class="bi bi-geo-alt me-1"></i>{{ r['constituency_name'] }}
+                </div>
+                {% if r['ocr_status'] == 'completed' %}
+                <div class="row g-1 mt-2 small">
+                    {% if r['age'] %}<div class="col-auto"><span class="badge bg-light text-dark">Age: {{ r['age'] }}</span></div>{% endif %}
+                    {% if r['education'] %}<div class="col-auto"><span class="badge bg-light text-dark">{{ r['education'] }}</span></div>{% endif %}
+                    {% if r['total_assets'] is not none %}<div class="col-auto"><span class="badge bg-light text-dark">{{ r['total_assets']|inr }}</span></div>{% endif %}
+                    {% if r['criminal_cases_pending'] and r['criminal_cases_pending'] > 0 %}
+                    <div class="col-auto"><span class="badge bg-danger">{{ r['criminal_cases_pending'] }} cases</span></div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                <a href="/candidate/{{ r['id'] }}" class="btn btn-sm btn-outline-primary mt-3 w-100">View Profile</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% elif query %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-search fs-1 d-block mb-3"></i>
+    <h5>No results found for "{{ query }}"</h5>
+    <p>Try a different spelling or broader search term</p>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-search fs-1 d-block mb-3"></i>
+    <h5>Enter a search query above</h5>
+    <p>Search by candidate name, party, constituency, or any keyword</p>
+</div>
+{% endif %}
+{% endblock %}

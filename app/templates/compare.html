@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Compare Candidates – {{ app_title }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        {% if constituency %}
+        <li class="breadcrumb-item"><a href="/constituency/{{ constituency['id'] }}">{{ constituency['name'] }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active">Compare</li>
+    </ol>
+</nav>
+
+<h1 class="h3 fw-bold mb-4"><i class="bi bi-arrows-angle-expand me-2"></i>Compare Candidates</h1>
+
+{% if not candidates %}
+<!-- Selection UI when no candidates are chosen -->
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h5>Select a constituency to compare candidates:</h5>
+        <form action="/compare" method="get" id="selectForm">
+            <div class="mb-3">
+                <label class="form-label">Choose Constituency:</label>
+                <select class="form-select" id="constituencySelect" onchange="loadCandidates(this.value)">
+                    <option value="">-- Select --</option>
+                </select>
+            </div>
+            <div id="candidateCheckboxes" class="mb-3" style="display:none">
+                <label class="form-label">Select candidates to compare (2 or more):</label>
+                <div id="candidateList" class="row g-2"></div>
+            </div>
+            <input type="hidden" name="ids" id="selectedIds">
+            <button type="submit" class="btn btn-primary" id="compareBtn" disabled>
+                <i class="bi bi-arrows-angle-expand me-1"></i>Compare
+            </button>
+        </form>
+    </div>
+</div>
+
+{% else %}
+<!-- Comparison Table -->
+{% if constituency %}
+<div class="mb-3">
+    <span class="text-muted">Constituency:</span>
+    <a href="/constituency/{{ constituency['id'] }}" class="fw-bold">{{ constituency['name'] }}</a>
+    <!-- Add more candidates -->
+    {% if all_in_constituency|length > candidates|length %}
+    <div class="dropdown d-inline-block ms-2">
+        <button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+            Add candidate
+        </button>
+        <ul class="dropdown-menu" style="max-height:300px;overflow-y:auto">
+            {% set selected_ids = candidates|map(attribute='id')|list %}
+            {% for c in all_in_constituency if c['id'] not in selected_ids %}
+            <li><a class="dropdown-item" href="/compare?ids={{ selected_ids|join(',') }},{{ c['id'] }}">{{ c['name'] }} ({{ c['party'] }})</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle comparison-table">
+        <thead class="table-light">
+            <tr>
+                <th class="sticky-col">Parameter</th>
+                {% for c in candidates %}
+                <th class="text-center">
+                    <a href="/candidate/{{ c['id'] }}" class="text-decoration-none text-dark">
+                        <strong>{{ c['name'] }}</strong>
+                    </a>
+                    <br><span class="badge party-badge-sm">{{ c['party'] }}</span>
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="sticky-col fw-semibold">Age</td>
+                {% for c in candidates %}
+                <td class="text-center">{{ c['age'] or '—' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="sticky-col fw-semibold">Education</td>
+                {% for c in candidates %}
+                <td class="text-center">{{ c['education'] or '—' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="sticky-col fw-semibold">Profession</td>
+                {% for c in candidates %}
+                <td class="text-center">{{ c['profession'] or '—' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="sticky-col fw-semibold">Movable Assets</td>
+                {% for c in candidates %}
+                <td class="text-center">{{ c['total_movable_assets']|inr }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="sticky-col fw-semibold">Immovable Assets</td>
+                {% for c in candidates %}
+                <td class="text-center">{{ c['total_immovable_assets']|inr }}</td>
+                {% endfor %}
+            </tr>
+            <tr class="table-primary">
+                <td class="sticky-col fw-bold">Total Assets</td>
+                {% for c in candidates %}
+                <td class="text-center fw-bold">{{ c['total_assets']|inr }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="sticky-col fw-semibold">Liabilities</td>
+                {% for c in candidates %}
+                <td class="text-center">{{ c['total_liabilities']|inr }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="sticky-col fw-semibold">Criminal Cases (Pending)</td>
+                {% for c in candidates %}
+                <td class="text-center {% if c['criminal_cases_pending'] and c['criminal_cases_pending'] > 0 %}text-danger fw-bold{% elif c['criminal_cases_pending'] == 0 %}text-success{% endif %}">
+                    {% if c['criminal_cases_pending'] is not none %}
+                        {{ c['criminal_cases_pending'] }}{% if c['criminal_cases_pending'] == 0 %} <i class="bi bi-check-circle"></i>{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="sticky-col fw-semibold">Convictions</td>
+                {% for c in candidates %}
+                <td class="text-center {% if c['criminal_cases_convicted'] and c['criminal_cases_convicted'] > 0 %}text-danger fw-bold{% elif c['criminal_cases_convicted'] == 0 %}text-success{% endif %}">
+                    {% if c['criminal_cases_convicted'] is not none %}
+                        {{ c['criminal_cases_convicted'] }}{% if c['criminal_cases_convicted'] == 0 %} <i class="bi bi-check-circle"></i>{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="sticky-col fw-semibold">Affidavits Filed</td>
+                {% for c in candidates %}
+                <td class="text-center">{{ c['affidavit_count'] }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="sticky-col fw-semibold">View PDF</td>
+                {% for c in candidates %}
+                <td class="text-center">
+                    <a href="/pdf/{{ c['folder_name'] }}/{{ c['raw_name'] }}-{{ c['party'] }}-1.pdf" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                    </a>
+                </td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% if candidates|length >= 2 %}
+<div class="mt-4">
+    <h5 class="fw-bold mb-3">Asset Comparison</h5>
+    <div style="max-height:350px">
+        <canvas id="compareChart"></canvas>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if not candidates %}
+fetch('/api/constituencies').then(r => r.json()).then(data => {
+    const sel = document.getElementById('constituencySelect');
+    data.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name + ' (' + c.candidate_count + ')';
+        sel.appendChild(opt);
+    });
+});
+
+function loadCandidates(cId) {
+    if (!cId) return;
+    fetch('/api/candidates/' + cId).then(r => r.json()).then(data => {
+        const div = document.getElementById('candidateList');
+        div.innerHTML = '';
+        data.forEach(c => {
+            const col = document.createElement('div');
+            col.className = 'col-6 col-md-4';
+            col.innerHTML = '<label class="form-check"><input type="checkbox" class="form-check-input cand-check" value="' + c.id + '" onchange="updateSelection()"> ' + c.name + ' (' + c.party + ')</label>';
+            div.appendChild(col);
+        });
+        document.getElementById('candidateCheckboxes').style.display = 'block';
+    });
+}
+
+function updateSelection() {
+    const checks = document.querySelectorAll('.cand-check:checked');
+    const ids = Array.from(checks).map(c => c.value);
+    document.getElementById('selectedIds').value = ids.join(',');
+    document.getElementById('compareBtn').disabled = ids.length < 2;
+}
+{% endif %}
+
+{% if candidates and candidates|length >= 2 %}
+new Chart(document.getElementById('compareChart'), {
+    type: 'bar',
+    data: {
+        labels: [{% for c in candidates %}'{{ c["name"] }} ({{ c["party"] }})'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [
+            {
+                label: 'Movable Assets',
+                data: [{% for c in candidates %}{{ c['total_movable_assets'] or 0 }}{% if not loop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#0d6efd'
+            },
+            {
+                label: 'Immovable Assets',
+                data: [{% for c in candidates %}{{ c['total_immovable_assets'] or 0 }}{% if not loop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#198754'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+            y: {
+                ticks: {
+                    callback: v => v >= 1e7 ? (v/1e7).toFixed(1) + ' Cr' : v >= 1e5 ? (v/1e5).toFixed(1) + ' L' : v.toLocaleString('en-IN')
+                }
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ constituency['name'] }} – {{ app_title }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">{{ constituency['name'] }}</li>
+    </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1"><i class="bi bi-geo-alt-fill me-2 text-primary"></i>{{ constituency['name'] }}</h1>
+        <p class="text-muted mb-0">{{ candidates|length }} candidates contesting</p>
+    </div>
+    <div class="d-flex gap-2 mt-2 mt-md-0">
+        <a href="/compare?ids={{ candidates|map(attribute='id')|join(',') }}" class="btn btn-outline-primary">
+            <i class="bi bi-arrows-angle-expand me-1"></i>Compare All
+        </a>
+        <a href="/api/export/candidates?constituency_id={{ constituency['id'] }}" class="btn btn-outline-secondary">
+            <i class="bi bi-download me-1"></i>CSV
+        </a>
+    </div>
+</div>
+
+<!-- Sort controls -->
+<div class="btn-group mb-3" role="group">
+    <a href="?sort=name" class="btn btn-sm {{ 'btn-primary' if sort == 'name' else 'btn-outline-primary' }}">Name</a>
+    <a href="?sort=party" class="btn btn-sm {{ 'btn-primary' if sort == 'party' else 'btn-outline-primary' }}">Party</a>
+    <a href="?sort=assets" class="btn btn-sm {{ 'btn-primary' if sort == 'assets' else 'btn-outline-primary' }}">Assets</a>
+    <a href="?sort=criminal" class="btn btn-sm {{ 'btn-primary' if sort == 'criminal' else 'btn-outline-primary' }}">Criminal Cases</a>
+</div>
+
+<!-- Candidate Compare Selector -->
+<form id="compareForm" action="/compare" method="get" class="mb-3" style="display:none">
+    <input type="hidden" name="ids" id="compareIds">
+    <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-arrows-angle-expand me-1"></i>Compare Selected (<span id="compareCount">0</span>)
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm ms-1" onclick="clearCompare()">Clear</button>
+</form>
+
+<div class="row g-3">
+    {% for c in candidates %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm hover-lift candidate-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h5 class="card-title fw-bold mb-0">
+                            <a href="/candidate/{{ c['id'] }}" class="text-decoration-none text-dark">{{ c['name'] }}</a>
+                        </h5>
+                        <span class="badge party-badge mt-1">{{ c['party'] }}</span>
+                        {% if c['party_full'] and c['party_full'] != c['party'] %}
+                        <small class="text-muted d-block">{{ c['party_full'] }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input compare-check" type="checkbox" value="{{ c['id'] }}" onchange="updateCompare()">
+                    </div>
+                </div>
+
+                {% if c['ocr_status'] == 'completed' %}
+                <div class="row g-2 mt-2 small">
+                    {% if c['age'] %}
+                    <div class="col-6"><i class="bi bi-person me-1 text-muted"></i><strong>Age:</strong> {{ c['age'] }}</div>
+                    {% endif %}
+                    {% if c['education'] %}
+                    <div class="col-6"><i class="bi bi-mortarboard me-1 text-muted"></i>{{ c['education'] }}</div>
+                    {% endif %}
+                    {% if c['total_assets'] is not none %}
+                    <div class="col-6"><i class="bi bi-cash-stack me-1 text-muted"></i><strong>Assets:</strong> {{ c['total_assets']|inr }}</div>
+                    {% endif %}
+                    {% if c['criminal_cases_pending'] is not none %}
+                    <div class="col-6">
+                        <i class="bi bi-exclamation-triangle me-1 {% if c['criminal_cases_pending'] > 0 %}text-danger{% else %}text-success{% endif %}"></i>
+                        <strong>Cases:</strong>
+                        {% if c['criminal_cases_pending'] > 0 %}
+                        <span class="text-danger">{{ c['criminal_cases_pending'] }} pending</span>
+                        {% else %}
+                        <span class="text-success">None</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p class="text-muted small mt-2 mb-0"><i class="bi bi-hourglass-split me-1"></i>Detailed data extraction pending</p>
+                {% endif %}
+
+                <div class="mt-3 d-flex gap-2">
+                    <a href="/candidate/{{ c['id'] }}" class="btn btn-sm btn-outline-primary flex-fill">View Profile</a>
+                    <a href="/pdf/{{ c['folder_name'] }}/{{ c['raw_name'] }}-{{ c['party'] }}-1.pdf" target="_blank" class="btn btn-sm btn-outline-secondary" title="View PDF">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateCompare() {
+    const checks = document.querySelectorAll('.compare-check:checked');
+    const form = document.getElementById('compareForm');
+    const count = document.getElementById('compareCount');
+    const ids = document.getElementById('compareIds');
+    const selected = Array.from(checks).map(c => c.value);
+    ids.value = selected.join(',');
+    count.textContent = selected.length;
+    form.style.display = selected.length >= 2 ? 'block' : 'none';
+}
+function clearCompare() {
+    document.querySelectorAll('.compare-check').forEach(c => c.checked = false);
+    updateCompare();
+}
+</script>
+{% endblock %}
